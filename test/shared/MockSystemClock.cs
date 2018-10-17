@@ -15,7 +15,8 @@ namespace Microsoft.AspNetCore.Testing
         {
             get
             {
-                UtcNowCalled++;
+                UtcNowGetterCallCount++;
+                OnUtcNowGetterCalled?.Invoke();
                 return new DateTimeOffset(Interlocked.Read(ref _utcNowTicks), TimeSpan.Zero);
             }
             set
@@ -24,6 +25,8 @@ namespace Microsoft.AspNetCore.Testing
             }
         }
 
-        public int UtcNowCalled { get; private set; }
+        public int UtcNowGetterCallCount { get; private set; }
+
+        public Action OnUtcNowGetterCalled { get; set; }
     }
 }

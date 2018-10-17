@@ -203,15 +203,16 @@ namespace Microsoft.AspNetCore.Server.Kestrel.Core.Tests
             };
             await InitializeConnectionAsync(_appAbort);
 
+            // Prevent the test from advancing mockSystemClock.UtcNow until the drain timeout is set.
+            var utcNowAccessedTcs = new TaskCompletionSource<object>(TaskCreationOptions.RunContinuationsAsynchronously);
+
+            mockSystemClock.OnUtcNowGetterCalled = () => utcNowAccessedTcs.TrySetResult(null);
+
             await StartStreamAsync(1, headers, endStream: false);
 
             await WaitForStreamErrorAsync(1, Http2ErrorCode.INTERNAL_ERROR, "The connection was aborted by the application.");
 
-            // There's a race when the appfunc is exiting about how soon it unregisters the stream.
-            for (var i = 0; i < 10; i++)
-            {
-                await SendDataAsync(1, new byte[100], endStream: false);
-            }
+            await utcNowAccessedTcs.Task.DefaultTimeout();
 
             // Just short of the timeout
             mockSystemClock.UtcNow += Constants.RequestBodyDrainTimeout;
